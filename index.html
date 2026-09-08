@@ -858,8 +858,8 @@
 
         if (window.Lenis) {
           const lenis = new Lenis({
-            lerp: 0.1, // Smooth physical inertia
-            wheelMultiplier: 0.85,
+            lerp: 0.075, // Softer inertia curve gives the hardware decoder breathing room
+            wheelMultiplier: 0.8,
             touchMultiplier: 1.2,
             smoothWheel: true,
           });
@@ -927,7 +927,8 @@
           const targetTime = Math.min(0.999, Math.max(0, targetProgress)) * dur;
 
           if (!video.seeking) {
-            const eps = isMobile() ? 0.03 : 0.015;
+            // Matches 24fps frame duration (1/24 = 0.0416s) to avoid sub-frame decoder thrashing
+            const eps = isMobile() ? 0.045 : 0.038;
             if (Math.abs(video.currentTime - targetTime) > eps) {
               try {
                 video.currentTime = targetTime;
