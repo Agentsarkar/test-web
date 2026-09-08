@@ -77,7 +77,7 @@
 
     .hero-track {
       position: relative;
-      height: 380svh;
+      height: 520svh;
       width: 100%;
     }
 
@@ -858,9 +858,9 @@
 
         if (window.Lenis) {
           const lenis = new Lenis({
-            lerp: 0.075, // Softer inertia curve gives the hardware decoder breathing room
-            wheelMultiplier: 0.8,
-            touchMultiplier: 1.2,
+            lerp: 0.055, // Luxurious Apple-style heavy inertia
+            wheelMultiplier: 0.75, // Prevents sudden harsh scroll shocks
+            touchMultiplier: 1.1,
             smoothWheel: true,
           });
 
@@ -920,18 +920,21 @@
         }
       }, { passive: true });
 
-      // Lenis-Driven Seek-Coalescing RAF Loop
+      // Lenis-Driven Seek-Coalescing RAF Loop with Time Smoothing
+      let smoothTime = 0;
       function raf() {
         if (isReady && video.readyState >= 2) {
           const dur = video.duration || 10;
           const targetTime = Math.min(0.999, Math.max(0, targetProgress)) * dur;
 
+          // Continuous gentle time-lerp ensures every seek is a smooth increment, never a sudden jump
+          smoothTime += (targetTime - smoothTime) * 0.18;
+
           if (!video.seeking) {
-            // Matches 24fps frame duration (1/24 = 0.0416s) to avoid sub-frame decoder thrashing
-            const eps = isMobile() ? 0.045 : 0.038;
-            if (Math.abs(video.currentTime - targetTime) > eps) {
+            const eps = isMobile() ? 0.04 : 0.025;
+            if (Math.abs(video.currentTime - smoothTime) > eps) {
               try {
-                video.currentTime = targetTime;
+                video.currentTime = smoothTime;
               } catch (e) {}
             }
           }
