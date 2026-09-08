@@ -1,0 +1,1168 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FROST — Cold-brewed, canned</title>
+  <meta name="description" content="FROST cold brew. Brewed twenty hours, sealed the same morning." />
+  <meta property="og:title" content="FROST — Cold-brewed, canned" />
+  <meta property="og:description" content="Brewed twenty hours, sealed the same morning." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Inter+Tight:wght@500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://unpkg.com/lenis@1.1.18/dist/lenis.min.js"></script>
+  <style>
+    :root {
+      --ocean: #04101a;
+      --ink: #f4f8fa;
+      --dim: rgba(244, 248, 250, 0.6);
+      --line: rgba(255, 255, 255, 0.12);
+      --ice: #5fd4ff;
+      --ease: cubic-bezier(.2, .7, .2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      margin: 0;
+    }
+
+    html.lenis, html.lenis body {
+      height: auto;
+    }
+
+    .lenis.lenis-smooth {
+      scroll-behavior: auto !important;
+    }
+
+    .lenis.lenis-smooth [data-lenis-prevent] {
+      overscroll-behavior: contain;
+    }
+
+    .lenis.lenis-stopped {
+      overflow: hidden;
+    }
+
+    html {
+      background: var(--ocean);
+      scrollbar-width: none;
+    }
+
+    html::-webkit-scrollbar {
+      display: none;
+    }
+
+    body {
+      background: var(--ocean);
+      color: var(--ink);
+      font-family: Inter, sans-serif;
+      overflow-x: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .hero-track {
+      position: relative;
+      height: 380svh;
+      width: 100%;
+    }
+
+    .hero-track .page {
+      position: sticky;
+      top: 0;
+      isolation: isolate;
+      width: 100%;
+      height: 100svh;
+      min-height: 560px;
+      overflow: hidden;
+      background: var(--ocean);
+    }
+
+    .glow {
+      position: absolute;
+      inset: 0;
+      z-index: -4;
+      background:
+        radial-gradient(56% 46% at 50% 46%, #5fd4ff22, transparent 68%),
+        linear-gradient(180deg, #04101a 0%, #0b2734 46%, #04101a 100%);
+    }
+
+    .film {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: translateZ(0);
+      will-change: transform;
+      backface-visibility: hidden;
+    }
+
+    .film-poster {
+      z-index: -3;
+      opacity: .88;
+      transition: opacity 0.35s ease;
+    }
+
+    .film-video {
+      z-index: -2;
+      opacity: 0;
+      transition: opacity 0.35s ease;
+    }
+
+    .film-video.is-ready {
+      opacity: .88;
+    }
+
+    .vignette {
+      position: absolute;
+      inset: 0;
+      z-index: -2;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(4, 16, 26, 0.88) 100%);
+    }
+
+    .grain {
+      display: none;
+    }
+
+    .nav {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 32px;
+      padding: 30px clamp(24px, 4vw, 64px);
+      z-index: 2;
+    }
+
+    .wordmark {
+      justify-self: start;
+      font: 600 20px/1 "Inter Tight", sans-serif;
+      letter-spacing: .22em;
+    }
+
+    .links {
+      display: flex;
+      align-items: center;
+      gap: clamp(22px, 2.8vw, 42px);
+    }
+
+    .mono {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .links a {
+      color: var(--dim);
+      transition: color 180ms ease;
+    }
+
+    .links a:hover,
+    .links a:focus-visible {
+      color: var(--ink);
+    }
+
+    .pill {
+      display: inline-flex;
+      min-height: 42px;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--ice);
+      border-radius: 999px;
+      padding: 0 22px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      transition: background-color 180ms ease, color 180ms ease;
+    }
+
+    .nav .pill {
+      justify-self: end;
+    }
+
+    .pill:hover,
+    .pill:focus-visible {
+      background: var(--ice);
+      color: var(--ocean);
+    }
+
+    .hero {
+      position: absolute;
+      inset: 50% auto auto 50%;
+      width: min(92vw, 1000px);
+      text-align: center;
+      transform: translate(-50%, -51%);
+    }
+
+    .kicker {
+      margin: 0 0 18px;
+      color: var(--ice);
+    }
+
+    h1 {
+      margin: 0;
+      font: 500 clamp(40px, 6.4vw, 88px)/1 "Inter Tight", sans-serif;
+      letter-spacing: -.035em;
+    }
+
+    h1 span {
+      color: var(--ice);
+    }
+
+    .sub {
+      max-width: 470px;
+      margin: 24px auto 0;
+      color: var(--dim);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .hero .pill {
+      margin-top: 30px;
+      min-height: 48px;
+      padding: 0 28px;
+      background: var(--ice);
+      color: var(--ocean);
+    }
+
+    .hero .pill:hover,
+    .hero .pill:focus-visible {
+      background: transparent;
+      color: var(--ink);
+    }
+
+    .specs {
+      position: absolute;
+      left: 50%;
+      bottom: clamp(24px, 5vh, 52px);
+      display: grid;
+      grid-template-columns: repeat(3, minmax(140px, 190px));
+      width: min(calc(100% - 48px), 590px);
+      transform: translateX(-50%);
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .spec {
+      padding: 15px 20px;
+      text-align: center;
+    }
+
+    .spec+.spec {
+      border-left: 1px solid var(--line);
+    }
+
+    .figure {
+      display: block;
+      color: var(--ice);
+      font: 500 18px/1.2 "Inter Tight", sans-serif;
+    }
+
+    .label {
+      display: block;
+      margin-top: 6px;
+      color: var(--dim);
+      font: 400 9px/1.2 "JetBrains Mono", monospace;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .reveal {
+      animation: reveal .95s var(--ease) both;
+    }
+
+    .wordmark {
+      animation-delay: 0ms;
+    }
+
+    .nav-cta {
+      animation-delay: 280ms;
+    }
+
+    .kicker {
+      animation-delay: 360ms;
+    }
+
+    h1 {
+      animation-delay: 460ms;
+    }
+
+    .sub {
+      animation-delay: 620ms;
+    }
+
+    .hero-cta {
+      animation-delay: 760ms;
+    }
+
+    .specs {
+      animation-delay: 920ms;
+    }
+
+    @keyframes reveal {
+      from {
+        opacity: 0;
+        filter: blur(16px);
+        transform: translateY(26px);
+      }
+
+      to {
+        opacity: 1;
+        filter: blur(0);
+        transform: translateY(0);
+      }
+    }
+
+    .specs.reveal {
+      animation-name: reveal-specs;
+    }
+
+    @keyframes reveal-specs {
+      from {
+        opacity: 0;
+        filter: blur(16px);
+        transform: translate(-50%, 26px);
+      }
+
+      to {
+        opacity: 1;
+        filter: blur(0);
+        transform: translate(-50%, 0);
+      }
+    }
+
+    @media (max-width: 820px) {
+      .nav {
+        grid-template-columns: 1fr auto;
+        padding: 24px;
+      }
+
+      .links {
+        display: none;
+      }
+
+      .hero {
+        transform: translate(-50%, -57%);
+      }
+
+      .specs {
+        grid-template-columns: repeat(3, 1fr);
+        width: calc(100% - 32px);
+        bottom: 20px;
+      }
+
+      .spec {
+        padding: 13px 6px;
+      }
+    }
+
+    @media (max-width: 430px) {
+      .nav .pill {
+        min-height: 38px;
+        padding: 0 14px;
+        font-size: 9px;
+      }
+
+      .wordmark {
+        font-size: 18px;
+      }
+
+      .hero {
+        width: calc(100% - 32px);
+      }
+
+      h1 {
+        max-width: 360px;
+        margin-inline: auto;
+      }
+
+      .sub {
+        max-width: 320px;
+      }
+
+      .figure {
+        font-size: 16px;
+      }
+
+      .label {
+        font-size: 8px;
+        letter-spacing: .1em;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reveal {
+        animation: none;
+      }
+
+      .film {
+        z-index: 4;
+        width: min(88vw, 760px);
+        height: auto;
+        inset: auto 50% 20px auto;
+        transform: translateX(50%);
+        mix-blend-mode: normal;
+        opacity: 1;
+      }
+    }
+
+    /* =========================================================
+       ACETERNITY UI 3D GLOBE & STOCKISTS SECTION
+       ========================================================= */
+    .stockists-section {
+      position: relative;
+      z-index: 5;
+      background: radial-gradient(circle at 50% 25%, #082838 0%, #04101a 60%, #02080d 100%);
+      padding: 120px clamp(20px, 4vw, 64px) 140px;
+      overflow: hidden;
+      border-top: 1px solid var(--line);
+    }
+
+    .stockists-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .section-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(95, 212, 255, 0.3);
+      background: rgba(95, 212, 255, 0.06);
+      color: var(--ice);
+      margin-bottom: 24px;
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--ice);
+      box-shadow: 0 0 10px var(--ice);
+      animation: pulse-glow 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    .stockists-title {
+      font: 500 clamp(32px, 5vw, 64px)/1.1 "Inter Tight", sans-serif;
+      letter-spacing: -.03em;
+      text-align: center;
+      margin: 0 0 16px;
+      max-width: 840px;
+    }
+
+    .stockists-title span {
+      color: var(--ice);
+      text-shadow: 0 0 32px rgba(95, 212, 255, 0.45);
+    }
+
+    .stockists-sub {
+      color: var(--dim);
+      font-size: clamp(15px, 1.4vw, 18px);
+      line-height: 1.6;
+      text-align: center;
+      max-width: 660px;
+      margin: 0 0 44px;
+    }
+
+    .city-selectors {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 50px;
+      z-index: 2;
+    }
+
+    .city-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--dim);
+      border-radius: 999px;
+      padding: 8px 18px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 220ms ease;
+    }
+
+    .city-btn:hover {
+      border-color: var(--ice);
+      color: var(--ink);
+      background: rgba(95, 212, 255, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .city-btn.active {
+      border-color: var(--ice);
+      background: var(--ice);
+      color: var(--ocean);
+      font-weight: 600;
+      box-shadow: 0 0 20px rgba(95, 212, 255, 0.35);
+    }
+
+    .globe-stage {
+      position: relative;
+      width: 100%;
+      max-width: 650px;
+      aspect-ratio: 1 / 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 70px;
+    }
+
+    .globe-aura {
+      position: absolute;
+      inset: 8%;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(95, 212, 255, 0.22) 0%, rgba(95, 212, 255, 0.04) 55%, transparent 72%);
+      pointer-events: none;
+      filter: blur(45px);
+    }
+
+    .globe-rings {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 1px dashed rgba(95, 212, 255, 0.14);
+      pointer-events: none;
+      animation: slow-orbit 100s linear infinite;
+    }
+
+    @keyframes slow-orbit {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .globe-canvas {
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+      touch-action: none;
+      opacity: 0;
+      transition: opacity 800ms ease;
+    }
+
+    .globe-canvas.ready {
+      opacity: 1;
+    }
+
+    .hud-card {
+      position: absolute;
+      z-index: 3;
+      padding: 18px 22px;
+      border-radius: 14px;
+      background: rgba(4, 16, 26, 0.76);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(95, 212, 255, 0.22);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 24px rgba(95, 212, 255, 0.1);
+      pointer-events: none;
+      max-width: 250px;
+    }
+
+    .hud-top-left {
+      top: 30px;
+      left: 10px;
+    }
+
+    .hud-bottom-right {
+      bottom: 30px;
+      right: 10px;
+    }
+
+    .hud-label {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 9px;
+      color: var(--ice);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hud-val {
+      font: 600 15px/1.2 "Inter Tight", sans-serif;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+
+    .hud-desc {
+      font-size: 11px;
+      color: var(--dim);
+      line-height: 1.4;
+    }
+
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .bento-card {
+      padding: 32px 28px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+      overflow: hidden;
+      transition: all 250ms ease;
+    }
+
+    .bento-card:hover {
+      border-color: rgba(95, 212, 255, 0.3);
+      background: rgba(95, 212, 255, 0.03);
+      transform: translateY(-3px);
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.45);
+    }
+
+    .bento-num {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      color: var(--ice);
+      margin-bottom: 16px;
+    }
+
+    .bento-title {
+      font: 600 19px/1.3 "Inter Tight", sans-serif;
+      margin: 0 0 10px;
+    }
+
+    .bento-body {
+      font-size: 13px;
+      color: var(--dim);
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .footer {
+      border-top: 1px solid var(--line);
+      padding: 40px 24px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--dim);
+      background: #02080d;
+    }
+
+    @media (max-width: 900px) {
+      .bento-grid {
+        grid-template-columns: 1fr;
+      }
+      .hud-top-left {
+        top: 0;
+        left: 0;
+      }
+      .hud-bottom-right {
+        bottom: 0;
+        right: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="hero-track" id="hero-track">
+    <main class="page">
+      <div class="glow" aria-hidden="true"></div>
+      <img class="film film-poster" id="frost-poster" src="frame_0001.webp" alt="FROST cold brew preview" />
+      <video class="film film-video" id="frost-video" muted playsinline preload="auto" aria-label="FROST cold brew film"></video>
+      <div class="vignette" aria-hidden="true"></div>
+      <div class="grain" aria-hidden="true"></div>
+
+      <nav class="nav" aria-label="Main navigation">
+        <a class="wordmark reveal" href="#" aria-label="FROST home">FROST</a>
+        <div class="links mono">
+          <a href="#brew">The brew</a>
+          <a href="#stockists">Stockists</a>
+          <a href="#wholesale">Wholesale</a>
+          <a href="#about">About</a>
+        </div>
+        <a class="pill nav-cta reveal" href="#stockists">Find a stockist</a>
+      </nav>
+
+      <section class="hero" aria-labelledby="hero-title">
+        <p class="kicker mono reveal">Cold-brewed, canned</p>
+        <h1 class="reveal" id="hero-title">Cold. Then <span>colder.</span></h1>
+        <p class="sub reveal">Brewed twenty hours, sealed the same morning.</p>
+        <a class="pill hero-cta reveal" href="#stockists">Find a stockist</a>
+      </section>
+
+      <section class="specs reveal" aria-label="Product details">
+        <div class="spec"><span class="figure">20h</span><span class="label">steeped</span></div>
+        <div class="spec"><span class="figure">2°C</span><span class="label">sealed</span></div>
+        <div class="spec"><span class="figure">0g</span><span class="label">sugar</span></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ACETERNITY UI 3D GLOBE STOCKISTS SECTION -->
+  <section class="stockists-section" id="stockists">
+    <div class="stockists-container">
+      <div class="section-tag mono">
+        <span class="pulse-dot"></span>
+        <span>Global Cold-Chain Network</span>
+      </div>
+
+      <h2 class="stockists-title">
+        Direct from brew vat to <span>any global hub.</span>
+      </h2>
+      <p class="stockists-sub">
+        Every batch is cold-sealed at 2°C and expedited via climate-controlled air freight within 24 hours. Spin the 3D globe to inspect active distribution routes.
+      </p>
+
+      <!-- Interactive City Badges -->
+      <div class="city-selectors">
+        <button class="city-btn active" data-city="tokyo">Tokyo, JP</button>
+        <button class="city-btn" data-city="nyc">New York, US</button>
+        <button class="city-btn" data-city="london">London, UK</button>
+        <button class="city-btn" data-city="sf">San Francisco, US</button>
+        <button class="city-btn" data-city="berlin">Berlin, DE</button>
+        <button class="city-btn" data-city="singapore">Singapore, SG</button>
+        <button class="city-btn" data-city="sydney">Sydney, AU</button>
+        <button class="city-btn" data-city="dubai">Dubai, AE</button>
+      </div>
+
+      <!-- 3D Globe Stage -->
+      <div class="globe-stage">
+        <div class="globe-aura"></div>
+        <div class="globe-rings"></div>
+        <canvas id="globe-canvas" class="globe-canvas" width="1200" height="1200"></canvas>
+
+        <!-- Floating HUD Telemetry (Top-Left) -->
+        <div class="hud-card hud-top-left">
+          <div class="hud-label">
+            <span class="pulse-dot"></span>
+            <span id="hud-city-name">TOKYO HUB</span>
+          </div>
+          <div class="hud-val" id="hud-city-status">2°C • Sealed Today</div>
+          <div class="hud-desc" id="hud-city-desc">Batch #F-882 arriving at Roppongi Reserve roastery.</div>
+        </div>
+
+        <!-- Floating HUD Telemetry (Bottom-Right) -->
+        <div class="hud-card hud-bottom-right">
+          <div class="hud-label">
+            <span>COLD LOG INTEGRITY</span>
+          </div>
+          <div class="hud-val">99.98% Monitored</div>
+          <div class="hud-desc">Drag or swipe globe to inspect all 10 international cold vessels.</div>
+        </div>
+      </div>
+
+      <!-- Bento Features -->
+      <div class="bento-grid">
+        <div class="bento-card">
+          <div class="bento-num mono">01 // COLD CHAIN</div>
+          <h3 class="bento-title">Unbroken 2°C Vault</h3>
+          <p class="bento-body">
+            Sensors broadcast temperature every 60 seconds from our brewing vats through transit until tapped by partner baristas.
+          </p>
+        </div>
+        <div class="bento-card">
+          <div class="bento-num mono">02 // VELOCITY</div>
+          <h3 class="bento-title">Sub-24h Dispatch</h3>
+          <p class="bento-body">
+            Canned at 06:00, palletized into chilled cargo bays, arriving on shelves in London, Tokyo, and New York within 24 hours.
+          </p>
+        </div>
+        <div class="bento-card">
+          <div class="bento-num mono">03 // MICRO-BATCH</div>
+          <h3 class="bento-title">Single-Estate Steep</h3>
+          <p class="bento-body">
+            20-hour immersion brew in pure mountain spring water, dosed with liquid nitrogen for a silky, cascading crema head.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer mono">
+    <p>© 2026 FROST COLD BREW CO. • ALL RIGHTS RESERVED • CRAFTED WITH ACETERNITY 3D GLOBE</p>
+  </footer>
+
+  <!-- VIDEO + LENIS SMOOTH-SCRUB EXPERIMENTAL ENGINE -->
+  <script>
+    (() => {
+      const video = document.getElementById('frost-video');
+      const poster = document.getElementById('frost-poster');
+      const heroTrack = document.getElementById('hero-track');
+      if (!video || !heroTrack) return;
+
+      const coarse = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+      const smallMQ = window.matchMedia('(max-width: 860px)');
+      const isMobile = () => coarse || smallMQ.matches;
+
+      // Select all-intra video (instant seeks with no P/B frame decode chain)
+      const videoSrc = isMobile() ? 'frost_m.mp4' : 'frost.mp4';
+      let isReady = false;
+      let targetProgress = 0;
+
+      // 1. In-memory Blob URL Caching
+      fetch(videoSrc)
+        .then(res => {
+          if (!res.ok) throw new Error('Blob fetch status: ' + res.status);
+          return res.blob();
+        })
+        .then(blob => {
+          const blobUrl = URL.createObjectURL(blob);
+          video.src = blobUrl;
+          video.load();
+        })
+        .catch(err => {
+          console.warn('Falling back to direct video src:', err);
+          video.src = videoSrc;
+        });
+
+      // 2. iOS Safari & Mobile Touch Priming
+      let userPrimed = false;
+      function primeVideo() {
+        if (userPrimed || !video) return;
+        userPrimed = true;
+        try {
+          const p = video.play();
+          if (p && p.then) {
+            p.then(() => {
+              try { video.pause(); } catch (e) {}
+            }).catch(() => {});
+          }
+        } catch (e) {}
+      }
+      window.addEventListener('pointerdown', primeVideo, { once: true, passive: true });
+      window.addEventListener('touchstart', primeVideo, { once: true, passive: true });
+
+      video.addEventListener('loadedmetadata', () => {
+        isReady = true;
+      });
+
+      // 3. Smooth Poster Handoff: Reveal video only when first frame paints
+      video.addEventListener('seeked', () => {
+        if (!video.classList.contains('is-ready')) {
+          video.classList.add('is-ready');
+          if (poster) poster.style.opacity = '0';
+        }
+      }, { once: true });
+
+      // 4. Lenis Smooth Scroll + GSAP Integration
+      const initGSAP = () => {
+        if (!window.gsap || !window.ScrollTrigger) return;
+        gsap.registerPlugin(ScrollTrigger);
+
+        if (window.Lenis) {
+          const lenis = new Lenis({
+            lerp: 0.1, // Smooth physical momentum
+            wheelMultiplier: 0.85,
+            touchMultiplier: 1.2,
+            smoothWheel: true,
+          });
+
+          lenis.on('scroll', ScrollTrigger.update);
+          gsap.ticker.add((time) => {
+            lenis.raf(time * 1000);
+          });
+          gsap.ticker.lagSmoothing(0);
+        }
+
+        ScrollTrigger.create({
+          trigger: "#hero-track",
+          start: "top top",
+          end: "bottom bottom",
+          scrub: true,
+          onUpdate: (self) => {
+            targetProgress = self.progress;
+          }
+        });
+
+        gsap.to(".hero", {
+          opacity: 0,
+          y: -40,
+          ease: "power1.out",
+          scrollTrigger: {
+            trigger: "#hero-track",
+            start: "top top",
+            end: "35% top",
+            scrub: true
+          }
+        });
+
+        gsap.to(".specs", {
+          opacity: 0,
+          y: -20,
+          ease: "power1.out",
+          scrollTrigger: {
+            trigger: "#hero-track",
+            start: "top top",
+            end: "25% top",
+            scrub: true
+          }
+        });
+      };
+
+      if (window.gsap && window.ScrollTrigger) {
+        initGSAP();
+      } else {
+        window.addEventListener('load', initGSAP, { once: true });
+      }
+
+      // Fallback scroll listener
+      window.addEventListener('scroll', () => {
+        if (!window.ScrollTrigger) {
+          const y = window.scrollY || window.pageYOffset;
+          const maxScroll = heroTrack.offsetHeight - window.innerHeight;
+          targetProgress = Math.max(0, Math.min(1, y / maxScroll));
+        }
+      }, { passive: true });
+
+      // 5. Seek-Coalescing Loop driven by Lenis Momentum
+      function raf() {
+        if (isReady && video.readyState >= 2) {
+          const eps = isMobile() ? 0.02 : 0.01;
+
+          if (!video.seeking) {
+            const dur = video.duration || 10;
+            const targetTime = Math.min(0.999, Math.max(0, targetProgress)) * dur;
+
+            if (Math.abs(video.currentTime - targetTime) > eps) {
+              try {
+                video.currentTime = targetTime;
+              } catch (e) {}
+            }
+          }
+        }
+        requestAnimationFrame(raf);
+      }
+      requestAnimationFrame(raf);
+    })();
+  </script>
+
+  <!-- ACETERNITY UI 3D GLOBE ENGINE -->
+  <script type="module">
+    import createGlobe from 'https://esm.sh/cobe@0.6.3';
+
+    const CITIES = {
+      tokyo: {
+        name: 'TOKYO HUB',
+        status: '2°C • Sealed Today',
+        desc: 'Batch #F-882 arriving at Roppongi Reserve roastery.',
+        lat: 35.6762,
+        lon: 139.6503
+      },
+      nyc: {
+        name: 'NEW YORK HUB',
+        status: '1.9°C • In Transit',
+        desc: 'Batch #F-881 clearing JFK air cargo for Soho roastery.',
+        lat: 40.7128,
+        lon: -74.006
+      },
+      london: {
+        name: 'LONDON HUB',
+        status: '2.1°C • Out for Delivery',
+        desc: 'Batch #F-880 en route to Shoreditch cold taproom.',
+        lat: 51.5074,
+        lon: -0.1278
+      },
+      sf: {
+        name: 'SAN FRANCISCO HUB',
+        status: '2.0°C • Vault Reserve',
+        desc: 'Batch #F-879 docked at Embarcadero cold logistics.',
+        lat: 37.7749,
+        lon: -122.4194
+      },
+      berlin: {
+        name: 'BERLIN HUB',
+        status: '1.8°C • Express Transit',
+        desc: 'Batch #F-878 dispatched to Mitte specialty coffee lab.',
+        lat: 52.52,
+        lon: 13.405
+      },
+      singapore: {
+        name: 'SINGAPORE HUB',
+        status: '2.0°C • Delivered',
+        desc: 'Batch #F-877 tapped at Marina Bay reserve bar.',
+        lat: 1.3521,
+        lon: 103.8198
+      },
+      sydney: {
+        name: 'SYDNEY HUB',
+        status: '2.2°C • Cold Stored',
+        desc: 'Batch #F-876 stored at Surry Hills flagship roastery.',
+        lat: -33.8688,
+        lon: 151.2093
+      },
+      dubai: {
+        name: 'DUBAI HUB',
+        status: '1.9°C • Sealed',
+        desc: 'Batch #F-875 clearing DXB climate-controlled air bay.',
+        lat: 25.2048,
+        lon: 55.2708
+      }
+    };
+
+    const canvas = document.getElementById('globe-canvas');
+    const hudCityName = document.getElementById('hud-city-name');
+    const hudCityStatus = document.getElementById('hud-city-status');
+    const hudCityDesc = document.getElementById('hud-city-desc');
+    const cityButtons = document.querySelectorAll('.city-btn');
+
+    let phi = 0;
+    let theta = 0.2;
+    let currentPhi = 0;
+    let currentTheta = 0;
+    let targetPhi = null;
+    let targetTheta = null;
+
+    let pointerInteracting = null;
+    let pointerInteractionMovement = 0;
+
+    const markers = Object.values(CITIES).map(c => ({
+      location: [c.lat, c.lon],
+      size: 0.08
+    }));
+
+    let globeVisible = false;
+    const stockistsSection = document.getElementById('stockists');
+    if (stockistsSection && 'IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(([entry]) => {
+        globeVisible = entry.isIntersecting;
+      }, { rootMargin: '200px' });
+      observer.observe(stockistsSection);
+    } else {
+      globeVisible = true;
+    }
+
+    try {
+      const globe = createGlobe(canvas, {
+        devicePixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
+        width: 1200,
+        height: 1200,
+        phi: 0,
+        theta: 0.25,
+        dark: 1,
+        diffuse: 1.4,
+        mapSamples: 22000,
+        mapBrightness: 6,
+        baseColor: [0.03, 0.1, 0.16],
+        markerColor: [0.37, 0.83, 1],
+        glowColor: [0.37, 0.83, 1],
+        markers: markers,
+        onRender: (state) => {
+          if (!globeVisible) return;
+
+          if (targetPhi !== null && targetTheta !== null) {
+            // Smoothly glide towards selected city
+            const diffPhi = targetPhi - (phi + currentPhi);
+            const diffTheta = targetTheta - (theta + currentTheta);
+            currentPhi += diffPhi * 0.07;
+            currentTheta += diffTheta * 0.07;
+
+            if (Math.abs(diffPhi) < 0.005 && Math.abs(diffTheta) < 0.005) {
+              targetPhi = null;
+              targetTheta = null;
+            }
+          } else if (!pointerInteracting) {
+            // Ambient idle auto-spin
+            phi += 0.003;
+          }
+
+          state.phi = phi + currentPhi;
+          state.theta = theta + currentTheta;
+          if (canvas.width && canvas.height) {
+            state.width = canvas.width;
+            state.height = canvas.height;
+          }
+        }
+      });
+
+      canvas.classList.add('ready');
+
+      // Pointer drag controls with spring inertia
+      canvas.addEventListener('pointerdown', (e) => {
+        targetPhi = null;
+        targetTheta = null;
+        pointerInteracting = e.clientX - pointerInteractionMovement;
+        canvas.style.cursor = 'grabbing';
+      });
+
+      window.addEventListener('pointerup', () => {
+        pointerInteracting = null;
+        canvas.style.cursor = 'grab';
+      });
+
+      window.addEventListener('pointerout', () => {
+        pointerInteracting = null;
+        canvas.style.cursor = 'grab';
+      });
+
+      window.addEventListener('pointermove', (e) => {
+        if (pointerInteracting !== null) {
+          const delta = e.clientX - pointerInteracting;
+          pointerInteractionMovement = delta;
+          currentPhi = delta * 0.005;
+        }
+      });
+
+      // City selector buttons
+      cityButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          cityButtons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+
+          const cityKey = btn.getAttribute('data-city');
+          const city = CITIES[cityKey];
+          if (!city) return;
+
+          // Update HUD telemetry
+          if (hudCityName) hudCityName.textContent = city.name;
+          if (hudCityStatus) hudCityStatus.textContent = city.status;
+          if (hudCityDesc) hudCityDesc.textContent = city.desc;
+
+          // Convert city coordinates to sphere orientation
+          targetPhi = -city.lon * (Math.PI / 180) - Math.PI / 2;
+          targetTheta = (city.lat * (Math.PI / 180)) * 0.35;
+        });
+      });
+    } catch (err) {
+      console.warn('Globe WebGL init error:', err);
+    }
+  </script>
+</body>
+
+</html>
