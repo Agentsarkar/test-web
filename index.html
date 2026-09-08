@@ -522,15 +522,24 @@
       box-shadow: 0 0 20px rgba(95, 212, 255, 0.35);
     }
 
+    .globe-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto 70px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
     .globe-stage {
       position: relative;
       width: 100%;
-      max-width: 650px;
+      max-width: 600px;
       aspect-ratio: 1 / 1;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 70px;
     }
 
     .globe-aura {
@@ -559,10 +568,11 @@
     .globe-canvas {
       width: 100%;
       height: 100%;
+      display: block;
       cursor: grab;
-      touch-action: none;
+      touch-action: pan-y;
       opacity: 0;
-      transition: opacity 800ms ease;
+      transition: opacity 600ms ease;
     }
 
     .globe-canvas.ready {
@@ -574,13 +584,13 @@
       z-index: 3;
       padding: 18px 22px;
       border-radius: 14px;
-      background: rgba(4, 16, 26, 0.76);
+      background: rgba(4, 16, 26, 0.82);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border: 1px solid rgba(95, 212, 255, 0.22);
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 24px rgba(95, 212, 255, 0.1);
-      pointer-events: none;
       max-width: 250px;
+      transition: border-color 260ms ease;
     }
 
     .hud-top-left {
@@ -670,17 +680,37 @@
       background: #02080d;
     }
 
-    @media (max-width: 900px) {
+    @media (max-width: 860px) {
       .bento-grid {
         grid-template-columns: 1fr;
       }
+      .globe-wrapper {
+        flex-direction: column;
+        max-width: 440px;
+        margin: 0 auto 40px;
+        gap: 16px;
+      }
+      .globe-stage {
+        max-width: min(88vw, 360px);
+        width: 100%;
+        margin: 0 auto;
+        order: 2;
+      }
+      .hud-card {
+        position: relative;
+        top: auto !important;
+        bottom: auto !important;
+        left: auto !important;
+        right: auto !important;
+        max-width: 100%;
+        width: 100%;
+        box-sizing: border-box;
+      }
       .hud-top-left {
-        top: 0;
-        left: 0;
+        order: 1;
       }
       .hud-bottom-right {
-        bottom: 0;
-        right: 0;
+        order: 3;
       }
     }
   </style>
@@ -690,7 +720,7 @@
   <div class="hero-track" id="hero-track">
     <main class="page">
       <div class="glow" aria-hidden="true"></div>
-      <video class="film" id="frost-video" muted playsinline preload="auto" aria-label="FROST cold brew film"></video>
+      <video class="film" id="frost-video" muted playsinline webkit-playsinline disablePictureInPicture disableRemotePlayback preload="auto" aria-label="FROST cold brew film"></video>
       <div class="vignette" aria-hidden="true"></div>
       <div class="grain" aria-hidden="true"></div>
 
@@ -747,13 +777,9 @@
         <button class="city-btn" data-city="dubai">Dubai, AE</button>
       </div>
 
-      <!-- 3D Globe Stage -->
-      <div class="globe-stage">
-        <div class="globe-aura"></div>
-        <div class="globe-rings"></div>
-        <canvas id="globe-canvas" class="globe-canvas" width="1200" height="1200"></canvas>
-
-        <!-- Floating HUD Telemetry (Top-Left) -->
+      <!-- 3D Globe Stage & Telemetry HUDs -->
+      <div class="globe-wrapper">
+        <!-- Floating HUD Telemetry (Top-Left on Desktop, Top Card on Mobile) -->
         <div class="hud-card hud-top-left">
           <div class="hud-label">
             <span class="pulse-dot"></span>
@@ -763,7 +789,13 @@
           <div class="hud-desc" id="hud-city-desc">Batch #F-882 arriving at Roppongi Reserve roastery.</div>
         </div>
 
-        <!-- Floating HUD Telemetry (Bottom-Right) -->
+        <div class="globe-stage">
+          <div class="globe-aura"></div>
+          <div class="globe-rings"></div>
+          <canvas id="globe-canvas" class="globe-canvas" width="800" height="800"></canvas>
+        </div>
+
+        <!-- Floating HUD Telemetry (Bottom-Right on Desktop, Bottom Card on Mobile) -->
         <div class="hud-card hud-bottom-right">
           <div class="hud-label">
             <span>COLD LOG INTEGRITY</span>
@@ -804,7 +836,7 @@
     <p>© 2026 FROST COLD BREW CO. • ALL RIGHTS RESERVED • CRAFTED WITH ACETERNITY 3D GLOBE</p>
   </footer>
 
-  <!-- LENIS-POWERED HIGH-PERFORMANCE VIDEO SCRUB ENGINE (VERCEL READY) -->
+  <!-- LENIS-POWERED HIGH-PERFORMANCE VIDEO SCRUB ENGINE (VERCEL & MOBILE READY) -->
   <script>
     (() => {
       const video = document.getElementById('frost-video');
@@ -815,41 +847,60 @@
       const smallMQ = window.matchMedia('(max-width: 860px)');
       const isMobile = () => coarse || smallMQ.matches;
 
-      // Select single-file stream (100% Vercel production compatible)
+      // Select stream based on viewport/device
       const videoSrc = isMobile() ? 'frost_m.mp4' : 'frost.mp4';
-      let isReady = false;
       let targetProgress = 0;
+      let smoothTime = 0;
+      let isSeeking = false;
+      let seekSafetyTimer = null;
 
-      // In-Memory Blob caching: Bypasses byte-range request limits, 100% in RAM
+      // Immediately set direct stream so metadata & initial frames start buffering with 0ms delay
+      video.src = videoSrc;
+      try { video.load(); } catch (e) {}
+
+      // Background in-memory blob caching: provides instant 0-latency scrubbing once buffered in RAM
       fetch(videoSrc)
         .then(res => {
           if (!res.ok) throw new Error('Status: ' + res.status);
           return res.blob();
         })
         .then(blob => {
-          video.src = URL.createObjectURL(blob);
-          video.load();
+          const blobUrl = URL.createObjectURL(blob);
+          const currentTime = video.currentTime;
+          video.src = blobUrl;
+          video.currentTime = currentTime;
         })
         .catch(() => {
-          video.src = videoSrc;
+          // Direct range-request stream continues smoothly
         });
 
-      // Mobile Touch Priming for iOS Safari
+      // Mobile Touch Priming for iOS Safari & Android Chrome
       let userPrimed = false;
       function primeVideo() {
         if (userPrimed || !video) return;
         userPrimed = true;
         try {
           const p = video.play();
-          if (p && p.then) p.then(() => { try { video.pause(); } catch (e) {} }).catch(() => {});
+          if (p && p.then) {
+            p.then(() => {
+              try { video.pause(); } catch (e) {}
+            }).catch(() => {});
+          }
         } catch (e) {}
       }
-      window.addEventListener('pointerdown', primeVideo, { once: true, passive: true });
-      window.addEventListener('touchstart', primeVideo, { once: true, passive: true });
-
-      video.addEventListener('loadedmetadata', () => {
-        isReady = true;
+      ['pointerdown', 'touchstart', 'scroll', 'wheel', 'keydown'].forEach(ev => {
+        window.addEventListener(ev, primeVideo, { once: true, passive: true });
       });
+
+      // Unified scroll synchronization (native + Lenis + ScrollTrigger)
+      function syncScroll() {
+        const y = window.scrollY || window.pageYOffset || 0;
+        const maxScroll = Math.max(1, heroTrack.offsetHeight - window.innerHeight);
+        targetProgress = Math.max(0, Math.min(1, y / maxScroll));
+      }
+      window.addEventListener('scroll', syncScroll, { passive: true });
+      window.addEventListener('resize', syncScroll, { passive: true });
+      syncScroll();
 
       // Lenis Smooth Scroll + GSAP ScrollTrigger Integration
       const initGSAP = () => {
@@ -858,13 +909,16 @@
 
         if (window.Lenis) {
           const lenis = new Lenis({
-            lerp: 0.055, // Luxurious Apple-style heavy inertia
-            wheelMultiplier: 0.75, // Prevents sudden harsh scroll shocks
+            lerp: 0.075,
+            wheelMultiplier: 0.85,
             touchMultiplier: 1.1,
             smoothWheel: true,
           });
 
-          lenis.on('scroll', ScrollTrigger.update);
+          lenis.on('scroll', (e) => {
+            ScrollTrigger.update();
+            syncScroll();
+          });
           gsap.ticker.add((time) => {
             lenis.raf(time * 1000);
           });
@@ -912,30 +966,46 @@
         window.addEventListener('load', initGSAP, { once: true });
       }
 
-      window.addEventListener('scroll', () => {
-        if (!window.ScrollTrigger) {
-          const y = window.scrollY || window.pageYOffset;
-          const maxScroll = heroTrack.offsetHeight - window.innerHeight;
-          targetProgress = Math.max(0, Math.min(1, y / maxScroll));
-        }
-      }, { passive: true });
+      // Safe seek queue preventing decoder starvation
+      function performSeek(time) {
+        isSeeking = true;
+        clearTimeout(seekSafetyTimer);
+        seekSafetyTimer = setTimeout(() => {
+          isSeeking = false;
+        }, 100);
 
-      // Lenis-Driven Seek-Coalescing RAF Loop with Time Smoothing
-      let smoothTime = 0;
+        try {
+          if ('fastSeek' in video) {
+            video.fastSeek(time);
+          } else {
+            video.currentTime = time;
+          }
+        } catch (e) {
+          video.currentTime = time;
+        }
+      }
+
+      video.addEventListener('seeked', () => {
+        clearTimeout(seekSafetyTimer);
+        isSeeking = false;
+      });
+
+      // High-Frequency RAF Scrub Engine
       function raf() {
-        if (isReady && video.readyState >= 2) {
+        const hasDuration = video.duration && !isNaN(video.duration) && video.duration > 0;
+        const isReady = (video.readyState >= 1) || hasDuration;
+
+        if (isReady) {
           const dur = video.duration || 10;
           const targetTime = Math.min(0.999, Math.max(0, targetProgress)) * dur;
 
-          // Continuous gentle time-lerp ensures every seek is a smooth increment, never a sudden jump
+          // Continuous gentle time-lerp ensures every seek is a smooth increment
           smoothTime += (targetTime - smoothTime) * 0.18;
 
-          if (!video.seeking) {
-            const eps = isMobile() ? 0.04 : 0.025;
+          if (!isSeeking && !video.seeking) {
+            const eps = isMobile() ? 0.03 : 0.02;
             if (Math.abs(video.currentTime - smoothTime) > eps) {
-              try {
-                video.currentTime = smoothTime;
-              } catch (e) {}
+              performSeek(smoothTime);
             }
           }
         }
@@ -945,171 +1015,87 @@
     })();
   </script>
 
-  <!-- ACETERNITY UI 3D GLOBE ENGINE -->
-  <script type="module">
-    import createGlobe from 'https://esm.sh/cobe@0.6.3';
-
-    const CITIES = {
-      tokyo: {
-        name: 'TOKYO HUB',
-        status: '2°C • Sealed Today',
-        desc: 'Batch #F-882 arriving at Roppongi Reserve roastery.',
-        lat: 35.6762,
-        lon: 139.6503
-      },
-      nyc: {
-        name: 'NEW YORK HUB',
-        status: '1.9°C • In Transit',
-        desc: 'Batch #F-881 clearing JFK air cargo for Soho roastery.',
-        lat: 40.7128,
-        lon: -74.006
-      },
-      london: {
-        name: 'LONDON HUB',
-        status: '2.1°C • Out for Delivery',
-        desc: 'Batch #F-880 en route to Shoreditch cold taproom.',
-        lat: 51.5074,
-        lon: -0.1278
-      },
-      sf: {
-        name: 'SAN FRANCISCO HUB',
-        status: '2.0°C • Vault Reserve',
-        desc: 'Batch #F-879 docked at Embarcadero cold logistics.',
-        lat: 37.7749,
-        lon: -122.4194
-      },
-      berlin: {
-        name: 'BERLIN HUB',
-        status: '1.8°C • Express Transit',
-        desc: 'Batch #F-878 dispatched to Mitte specialty coffee lab.',
-        lat: 52.52,
-        lon: 13.405
-      },
-      singapore: {
-        name: 'SINGAPORE HUB',
-        status: '2.0°C • Delivered',
-        desc: 'Batch #F-877 tapped at Marina Bay reserve bar.',
-        lat: 1.3521,
-        lon: 103.8198
-      },
-      sydney: {
-        name: 'SYDNEY HUB',
-        status: '2.2°C • Cold Stored',
-        desc: 'Batch #F-876 stored at Surry Hills flagship roastery.',
-        lat: -33.8688,
-        lon: 151.2093
-      },
-      dubai: {
-        name: 'DUBAI HUB',
-        status: '1.9°C • Sealed',
-        desc: 'Batch #F-875 clearing DXB climate-controlled air bay.',
-        lat: 25.2048,
-        lon: 55.2708
-      }
-    };
-
-    const canvas = document.getElementById('globe-canvas');
-    const hudCityName = document.getElementById('hud-city-name');
-    const hudCityStatus = document.getElementById('hud-city-status');
-    const hudCityDesc = document.getElementById('hud-city-desc');
-    const cityButtons = document.querySelectorAll('.city-btn');
-
-    let phi = 0;
-    let theta = 0.2;
-    let currentPhi = 0;
-    let currentTheta = 0;
-    let targetPhi = null;
-    let targetTheta = null;
-
-    let pointerInteracting = null;
-    let pointerInteractionMovement = 0;
-
-    const markers = Object.values(CITIES).map(c => ({
-      location: [c.lat, c.lon],
-      size: 0.08
-    }));
-
-    let globeVisible = false;
-    const stockistsSection = document.getElementById('stockists');
-    if (stockistsSection && 'IntersectionObserver' in window) {
-      const observer = new IntersectionObserver(([entry]) => {
-        globeVisible = entry.isIntersecting;
-      }, { rootMargin: '200px' });
-      observer.observe(stockistsSection);
-    } else {
-      globeVisible = true;
-    }
-
-    try {
-      const globe = createGlobe(canvas, {
-        devicePixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
-        width: 1200,
-        height: 1200,
-        phi: 0,
-        theta: 0.25,
-        dark: 1,
-        diffuse: 1.4,
-        mapSamples: 22000,
-        mapBrightness: 6,
-        baseColor: [0.03, 0.1, 0.16],
-        markerColor: [0.37, 0.83, 1],
-        glowColor: [0.37, 0.83, 1],
-        markers: markers,
-        onRender: (state) => {
-          if (!globeVisible) return;
-
-          if (targetPhi !== null && targetTheta !== null) {
-            // Smoothly glide towards selected city
-            const diffPhi = targetPhi - (phi + currentPhi);
-            const diffTheta = targetTheta - (theta + currentTheta);
-            currentPhi += diffPhi * 0.07;
-            currentTheta += diffTheta * 0.07;
-
-            if (Math.abs(diffPhi) < 0.005 && Math.abs(diffTheta) < 0.005) {
-              targetPhi = null;
-              targetTheta = null;
-            }
-          } else if (!pointerInteracting) {
-            // Ambient idle auto-spin
-            phi += 0.003;
-          }
-
-          state.phi = phi + currentPhi;
-          state.theta = theta + currentTheta;
-          if (canvas.width && canvas.height) {
-            state.width = canvas.width;
-            state.height = canvas.height;
-          }
+  <!-- 3D GLOBE ENGINE (Local Zero-Dependency Bundle) -->
+  <script src="cobe.js"></script>
+  <script>
+    (() => {
+      const CITIES = {
+        tokyo: {
+          name: 'TOKYO HUB',
+          status: '2°C • Sealed Today',
+          desc: 'Batch #F-882 arriving at Roppongi Reserve roastery.',
+          lat: 35.6762,
+          lon: 139.6503
+        },
+        nyc: {
+          name: 'NEW YORK HUB',
+          status: '1.9°C • In Transit',
+          desc: 'Batch #F-881 clearing JFK air cargo for Soho roastery.',
+          lat: 40.7128,
+          lon: -74.006
+        },
+        london: {
+          name: 'LONDON HUB',
+          status: '2.1°C • Out for Delivery',
+          desc: 'Batch #F-880 en route to Shoreditch cold taproom.',
+          lat: 51.5074,
+          lon: -0.1278
+        },
+        sf: {
+          name: 'SAN FRANCISCO HUB',
+          status: '2.0°C • Vault Reserve',
+          desc: 'Batch #F-879 docked at Embarcadero cold logistics.',
+          lat: 37.7749,
+          lon: -122.4194
+        },
+        berlin: {
+          name: 'BERLIN HUB',
+          status: '1.8°C • Express Transit',
+          desc: 'Batch #F-878 dispatched to Mitte specialty coffee lab.',
+          lat: 52.52,
+          lon: 13.405
+        },
+        singapore: {
+          name: 'SINGAPORE HUB',
+          status: '2.0°C • Delivered',
+          desc: 'Batch #F-877 tapped at Marina Bay reserve bar.',
+          lat: 1.3521,
+          lon: 103.8198
+        },
+        sydney: {
+          name: 'SYDNEY HUB',
+          status: '2.2°C • Cold Stored',
+          desc: 'Batch #F-876 stored at Surry Hills flagship roastery.',
+          lat: -33.8688,
+          lon: 151.2093
+        },
+        dubai: {
+          name: 'DUBAI HUB',
+          status: '1.9°C • Sealed',
+          desc: 'Batch #F-875 clearing DXB climate-controlled air bay.',
+          lat: 25.2048,
+          lon: 55.2708
         }
-      });
+      };
 
-      canvas.classList.add('ready');
+      const canvas = document.getElementById('globe-canvas');
+      if (!canvas) return;
 
-      // Pointer drag controls with spring inertia
-      canvas.addEventListener('pointerdown', (e) => {
-        targetPhi = null;
-        targetTheta = null;
-        pointerInteracting = e.clientX - pointerInteractionMovement;
-        canvas.style.cursor = 'grabbing';
-      });
+      const hudCityName = document.getElementById('hud-city-name');
+      const hudCityStatus = document.getElementById('hud-city-status');
+      const hudCityDesc = document.getElementById('hud-city-desc');
+      const cityButtons = document.querySelectorAll('.city-btn');
 
-      window.addEventListener('pointerup', () => {
-        pointerInteracting = null;
-        canvas.style.cursor = 'grab';
-      });
+      let phi = 0;
+      let theta = 0.25;
+      let currentPhi = 0;
+      let currentTheta = 0;
+      let targetPhi = null;
+      let targetTheta = null;
 
-      window.addEventListener('pointerout', () => {
-        pointerInteracting = null;
-        canvas.style.cursor = 'grab';
-      });
-
-      window.addEventListener('pointermove', (e) => {
-        if (pointerInteracting !== null) {
-          const delta = e.clientX - pointerInteracting;
-          pointerInteractionMovement = delta;
-          currentPhi = delta * 0.005;
-        }
-      });
+      let isDragging = false;
+      let pointerInteracting = null;
+      let pointerInteractionMovement = 0;
 
       // City selector buttons
       cityButtons.forEach(btn => {
@@ -1121,19 +1107,348 @@
           const city = CITIES[cityKey];
           if (!city) return;
 
-          // Update HUD telemetry
           if (hudCityName) hudCityName.textContent = city.name;
           if (hudCityStatus) hudCityStatus.textContent = city.status;
           if (hudCityDesc) hudCityDesc.textContent = city.desc;
 
-          // Convert city coordinates to sphere orientation
           targetPhi = -city.lon * (Math.PI / 180) - Math.PI / 2;
           targetTheta = (city.lat * (Math.PI / 180)) * 0.35;
         });
       });
-    } catch (err) {
-      console.warn('Globe WebGL init error:', err);
-    }
+
+      // Pointer drag controls with pointer capture for flawless mobile swipes
+      canvas.addEventListener('pointerdown', (e) => {
+        isDragging = true;
+        targetPhi = null;
+        targetTheta = null;
+        pointerInteracting = e.clientX - pointerInteractionMovement;
+        canvas.style.cursor = 'grabbing';
+        try { canvas.setPointerCapture(e.pointerId); } catch(err) {}
+      });
+
+      canvas.addEventListener('pointermove', (e) => {
+        if (!isDragging || pointerInteracting === null) return;
+        const delta = e.clientX - pointerInteracting;
+        pointerInteractionMovement = delta;
+        currentPhi = delta * 0.005;
+      });
+
+      const endDrag = (e) => {
+        if (isDragging) {
+          isDragging = false;
+          pointerInteracting = null;
+          canvas.style.cursor = 'grab';
+          try { if (e && e.pointerId) canvas.releasePointerCapture(e.pointerId); } catch(err) {}
+        }
+      };
+
+      canvas.addEventListener('pointerup', endDrag);
+      canvas.addEventListener('pointercancel', endDrag);
+
+      // WebGL capability detector
+      function isWebGLAvailable() {
+        try {
+          const testCanvas = document.createElement('canvas');
+          return !!(window.WebGLRenderingContext && (testCanvas.getContext('webgl') || testCanvas.getContext('experimental-webgl')));
+        } catch (e) {
+          return false;
+        }
+      }
+
+      // Responsive sizing
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      let canvasSize = 0;
+      const updateSize = () => {
+        const rect = canvas.getBoundingClientRect();
+        const computed = Math.round((rect.width || canvas.offsetWidth || 340) * dpr);
+        canvasSize = Math.max(280, computed);
+      };
+      updateSize();
+      window.addEventListener('resize', updateSize);
+
+      let globeVisible = true;
+      const stockistsSection = document.getElementById('stockists');
+      if (stockistsSection && 'IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+          for (const entry of entries) {
+            globeVisible = entry.isIntersecting;
+          }
+        }, { rootMargin: '350px' });
+        observer.observe(stockistsSection);
+      }
+
+      const isMobile = window.innerWidth <= 768 || ('ontouchstart' in window);
+      const markers = Object.values(CITIES).map(c => ({
+        location: [c.lat, c.lon],
+        size: 0.08
+      }));
+
+      let webglSuccess = false;
+      let globeInstance = null;
+
+      if (window.createGlobe && isWebGLAvailable()) {
+        try {
+          let framesRendered = 0;
+          globeInstance = window.createGlobe(canvas, {
+            devicePixelRatio: dpr,
+            width: canvasSize,
+            height: canvasSize,
+            phi: 0,
+            theta: 0.25,
+            dark: 1,
+            diffuse: 1.4,
+            mapSamples: isMobile ? 10000 : 16000,
+            mapBrightness: 6,
+            baseColor: [0.03, 0.1, 0.16],
+            markerColor: [0.37, 0.83, 1],
+            glowColor: [0.37, 0.83, 1],
+            markers: markers,
+            onRender: (state) => {
+              if (!globeVisible && framesRendered > 10) return;
+              framesRendered++;
+
+              if (targetPhi !== null && targetTheta !== null) {
+                const diffPhi = targetPhi - (phi + currentPhi);
+                const diffTheta = targetTheta - (theta + currentTheta);
+                currentPhi += diffPhi * 0.07;
+                currentTheta += diffTheta * 0.07;
+
+                if (Math.abs(diffPhi) < 0.005 && Math.abs(diffTheta) < 0.005) {
+                  targetPhi = null;
+                  targetTheta = null;
+                }
+              } else if (!isDragging) {
+                phi += 0.003;
+              }
+
+              state.phi = phi + currentPhi;
+              state.theta = theta + currentTheta;
+              state.width = canvasSize;
+              state.height = canvasSize;
+            }
+          });
+
+          canvas.classList.add('ready');
+          webglSuccess = true;
+        } catch (err) {
+          console.warn('WebGL globe failed to start, engaging 2D cyber fallback:', err);
+          webglSuccess = false;
+        }
+      }
+
+      // Handle mobile WebGL context loss gracefully
+      canvas.addEventListener('webglcontextlost', (e) => {
+        e.preventDefault();
+        if (!webglSuccess) return;
+        webglSuccess = false;
+        if (globeInstance && globeInstance.destroy) globeInstance.destroy();
+        launchFallback2D();
+      });
+
+      if (!webglSuccess) {
+        launchFallback2D();
+      }
+
+      // High-performance Canvas 2D Cyber Globe Fallback
+      function launchFallback2D() {
+        canvas.classList.add('ready');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        function drawFrame() {
+          if (!globeVisible) {
+            requestAnimationFrame(drawFrame);
+            return;
+          }
+
+          const rect = canvas.getBoundingClientRect();
+          const size = Math.min(rect.width || 340, rect.height || 340) * dpr;
+          if (canvas.width !== size || canvas.height !== size) {
+            canvas.width = size;
+            canvas.height = size;
+          }
+
+          const cx = size / 2;
+          const cy = size / 2;
+          const radius = size * 0.38;
+
+          ctx.clearRect(0, 0, size, size);
+
+          // Deep radial atmosphere core
+          const bgGrad = ctx.createRadialGradient(cx - radius * 0.2, cy - radius * 0.2, radius * 0.05, cx, cy, radius);
+          bgGrad.addColorStop(0, '#0a2e42');
+          bgGrad.addColorStop(0.65, '#041422');
+          bgGrad.addColorStop(1, '#02080d');
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+          ctx.fillStyle = bgGrad;
+          ctx.fill();
+          ctx.lineWidth = 1.5 * dpr;
+          ctx.strokeStyle = 'rgba(95, 212, 255, 0.45)';
+          ctx.stroke();
+          ctx.clip();
+
+          // Limb glow
+          const limb = ctx.createRadialGradient(cx, cy, radius * 0.72, cx, cy, radius);
+          limb.addColorStop(0, 'transparent');
+          limb.addColorStop(0.85, 'rgba(95, 212, 255, 0.15)');
+          limb.addColorStop(1, 'rgba(95, 212, 255, 0.42)');
+          ctx.fillStyle = limb;
+          ctx.fillRect(0, 0, size, size);
+
+          // Kinetic rotation
+          if (targetPhi !== null && targetTheta !== null) {
+            const diffPhi = targetPhi - (phi + currentPhi);
+            const diffTheta = targetTheta - (theta + currentTheta);
+            currentPhi += diffPhi * 0.07;
+            currentTheta += diffTheta * 0.07;
+            if (Math.abs(diffPhi) < 0.005 && Math.abs(diffTheta) < 0.005) {
+              targetPhi = null;
+              targetTheta = null;
+            }
+          } else if (!isDragging) {
+            phi += 0.004;
+          }
+
+          const curPhi = phi + currentPhi;
+          const curTheta = theta + currentTheta;
+
+          // 3D Sphere projection
+          function project(latDeg, lonDeg) {
+            const lat = latDeg * Math.PI / 180;
+            const lon = lonDeg * Math.PI / 180 + curPhi;
+            const cosLat = Math.cos(lat);
+            const sinLat = Math.sin(lat);
+            const cosLon = Math.cos(lon);
+            const sinLon = Math.sin(lon);
+
+            const x3 = cosLat * sinLon;
+            const y3 = sinLat;
+            const z3 = cosLat * cosLon;
+
+            const cosT = Math.cos(curTheta);
+            const sinT = Math.sin(curTheta);
+            const yRot = y3 * cosT - z3 * sinT;
+            const zRot = y3 * sinT + z3 * cosT;
+
+            return {
+              x: cx + x3 * radius,
+              y: cy - yRot * radius,
+              z: zRot,
+              visible: zRot > 0
+            };
+          }
+
+          // Latitude parallels
+          ctx.lineWidth = 1 * dpr;
+          [-50, -25, 0, 25, 50].forEach(lat => {
+            ctx.beginPath();
+            let started = false;
+            for (let lon = -180; lon <= 180; lon += 6) {
+              const pt = project(lat, lon);
+              if (pt.visible) {
+                if (!started) { ctx.moveTo(pt.x, pt.y); started = true; }
+                else { ctx.lineTo(pt.x, pt.y); }
+              } else {
+                started = false;
+              }
+            }
+            ctx.strokeStyle = lat === 0 ? 'rgba(95, 212, 255, 0.32)' : 'rgba(95, 212, 255, 0.12)';
+            ctx.stroke();
+          });
+
+          // Longitude meridians
+          for (let lon = 0; lon < 360; lon += 30) {
+            ctx.beginPath();
+            let started = false;
+            for (let lat = -80; lat <= 80; lat += 6) {
+              const pt = project(lat, lon);
+              if (pt.visible) {
+                if (!started) { ctx.moveTo(pt.x, pt.y); started = true; }
+                else { ctx.lineTo(pt.x, pt.y); }
+              } else {
+                started = false;
+              }
+            }
+            ctx.strokeStyle = 'rgba(95, 212, 255, 0.14)';
+            ctx.stroke();
+          }
+
+          // Great circle flight arcs from Tokyo hub to others
+          const tokyo = CITIES.tokyo;
+          const ptTokyo = project(tokyo.lat, tokyo.lon);
+          const time = Date.now() * 0.002;
+
+          Object.values(CITIES).forEach(c => {
+            if (c === tokyo) return;
+            const ptOther = project(c.lat, c.lon);
+            if (ptTokyo.visible || ptOther.visible) {
+              const midLat = (tokyo.lat + c.lat) / 2;
+              const midLon = (tokyo.lon + c.lon) / 2;
+              const ptMid = project(midLat, midLon);
+              const dx = ptMid.x - cx;
+              const dy = ptMid.y - cy;
+              const elevatedX = cx + dx * 1.25;
+              const elevatedY = cy + dy * 1.25;
+
+              ctx.beginPath();
+              ctx.moveTo(ptTokyo.x, ptTokyo.y);
+              ctx.quadraticCurveTo(elevatedX, elevatedY, ptOther.x, ptOther.y);
+              ctx.strokeStyle = 'rgba(95, 212, 255, 0.35)';
+              ctx.lineWidth = 1.2 * dpr;
+              ctx.stroke();
+
+              // Glowing photon packet moving along arc
+              const tProgress = (time + (c.lat % 3)) % 1;
+              const qx = (1 - tProgress) * (1 - tProgress) * ptTokyo.x + 2 * (1 - tProgress) * tProgress * elevatedX + tProgress * tProgress * ptOther.x;
+              const qy = (1 - tProgress) * (1 - tProgress) * ptTokyo.y + 2 * (1 - tProgress) * tProgress * elevatedY + tProgress * tProgress * ptOther.y;
+
+              ctx.beginPath();
+              ctx.arc(qx, qy, 2.5 * dpr, 0, Math.PI * 2);
+              ctx.fillStyle = '#ffffff';
+              ctx.shadowColor = '#5fd4ff';
+              ctx.shadowBlur = 8 * dpr;
+              ctx.fill();
+              ctx.shadowBlur = 0;
+            }
+          });
+
+          // Render Hub Nodes
+          const activeBtn = document.querySelector('.city-btn.active');
+          const activeKey = activeBtn ? activeBtn.getAttribute('data-city') : 'tokyo';
+
+          Object.entries(CITIES).forEach(([k, c]) => {
+            const pt = project(c.lat, c.lon);
+            if (pt.visible) {
+              const isActive = (k === activeKey);
+
+              if (isActive) {
+                const pulse = (Math.sin(Date.now() * 0.005) + 1) * 0.5;
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, (7 + pulse * 6) * dpr, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(95, 212, 255, ${0.4 + pulse * 0.4})`;
+                ctx.lineWidth = 1.5 * dpr;
+                ctx.stroke();
+              }
+
+              ctx.beginPath();
+              ctx.arc(pt.x, pt.y, (isActive ? 4.5 : 3) * dpr, 0, Math.PI * 2);
+              ctx.fillStyle = isActive ? '#5fd4ff' : 'rgba(160, 230, 255, 0.85)';
+              ctx.shadowColor = '#5fd4ff';
+              ctx.shadowBlur = isActive ? 12 * dpr : 4 * dpr;
+              ctx.fill();
+              ctx.shadowBlur = 0;
+            }
+          });
+
+          ctx.restore();
+          requestAnimationFrame(drawFrame);
+        }
+        requestAnimationFrame(drawFrame);
+      }
+    })();
   </script>
 </body>
 
